@@ -1,66 +1,45 @@
-#!/usr/bin/env python3
+from app import create_app, db  # Import create_app and db
+from models import Episode, Guest, Appearance
+from faker import Faker
 
-import csv
-from random import randint
+fake = Faker()
 
-from app import app
-from models import db, Episode, Guest, Appearance
+# Create the app instance
+app = create_app()
 
-def clear_database():
-    with app.app_context():
-        Episode.query.delete()
-        Guest.query.delete()
-        Appearance.query.delete()
-        db.session.commit()
+# Run the seeding script inside the Flask app context
+with app.app_context():  # Ensure you are working inside the Flask app context
+    db.create_all()  # Create the tables if they don't exist
 
-def create_episodes(rows):
-    with app.app_context():
-        episodes = []
-        for i in range(1, len(rows)):
-            e = Episode(date=rows[i][2], number=i)
-            episodes.append(e)
-        db.session.add_all(episodes)
-        db.session.commit()
-    return episodes
+    # Generate 10 fake episodes
+    episodes = []
+    for _ in range(10):
+        episode_date = fake.date_this_century()
+        episode = Episode.query.filter_by(date=episode_date).first()  # Check if episode exists
+        if not episode:
+            episode = Episode(date=episode_date, number=fake.random_int(min=1, max=100))
+            db.session.add(episode)
+        episodes.append(episode)
 
-def create_guests(rows):
-    with app.app_context():
-        guests = []
-        for i in range(1, len(rows)):
-            g = Guest(name=rows[i][-1], occupation=rows[i][1])
-            guests.append(g)
-        db.session.add_all(guests)
-        db.session.commit()
-    return guests
+    db.session.commit()  # Commit the new episodes
 
-def create_appearances(rows, episodes, guests):
-    with app.app_context():
-        appearances = []
-        for i in range(1, len(rows)):
-            guest=Guest.query.filter(Guest.name==rows[i][-1]).first()
-            episode=Episode.query.filter(Episode.date==rows[i][2]).first()
-            a = Appearance(
-                rating=randint(1, 5),
-                guest_id = guest.id,
-                episode_id = episode.id
-            )
-            appearances.append(a)
-        db.session.add_all(appearances)
-        db.session.commit()
+    # Generate 10 fake guests
+    guests = []
+    for _ in range(10):
+        guest = Guest(name=fake.name(), occupation=fake.job())
+        db.session.add(guest)
+        guests.append(guest)
 
+    db.session.commit()  # Commit the new guests
 
-if __name__ == '__main__':
+    # Create appearances for guests
+    for _ in range(20):
+        appearance = Appearance(
+            rating=fake.random_int(min=1, max=5),
+            episode_id=fake.random_element(elements=[e.id for e in episodes]),
+            guest_id=fake.random_element(elements=[g.id for g in guests])
+        )
+        db.session.add(appearance)
 
-    print("Clearing database...")
-    clear_database()
-
-    print("Opening CSV...")
-    with open('server/seed.csv', newline='') as csvfile:
-        rows = [row for row in csv.reader(csvfile, delimiter=',', quotechar='|')]
-        print("Seeding episodes...")
-        episodes = create_episodes(rows)
-        print("Seeding guests...")
-        guests = create_guests(rows)
-        print("Seeding appearances...")
-        create_appearances(rows, episodes, guests)
-        print("Complete!")
+    db.session.commit()  # Commit the new appearances
+    print("Database seeded successfully")

@@ -1,52 +1,62 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import MetaData
-from sqlalchemy.orm import validates
-from sqlalchemy_serializer import SerializerMixin
 
-metadata = MetaData(naming_convention={
-    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-    "uq": "uq_%(table_name)s_%(column_0_name)s",
-    "ck": "ck_%(table_name)s_%(constraint_name)s",
-    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-})
+# Initialize the database instance
+db = SQLAlchemy()
 
-db = SQLAlchemy(metadata=metadata)
-
-
-class Episode(db.Model, SerializerMixin):
+# Episode Model
+class Episode(db.Model):
     __tablename__ = 'episodes'
 
     id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.String)
-    number = db.Column(db.Integer)
+    date = db.Column(db.Date, nullable=False)
+    number = db.Column(db.Integer, nullable=False)
 
-    # add relationship
-    
-    # add serialization rules
-    
+    # Relationship with appearances
+    appearances = db.relationship('Appearance', backref='episode', lazy=True)
 
-class Guest(db.Model, SerializerMixin):
+    def to_dict(self):
+        """Serialize the Episode object to a dictionary"""
+        return {
+            'id': self.id,
+            'date': self.date.isoformat(),
+            'number': self.number
+        }
+
+# Guest Model
+class Guest(db.Model):
     __tablename__ = 'guests'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    occupation = db.Column(db.String)
+    name = db.Column(db.String(100), nullable=False)
+    occupation = db.Column(db.String(100), nullable=False)
 
-    # add relationship
-    
-    # add serialization rules
-    
+    # Relationship with appearances
+    appearances = db.relationship('Appearance', backref='guest', lazy=True)
 
-class Appearance(db.Model, SerializerMixin):
+    def to_dict(self):
+        """Serialize the Guest object to a dictionary"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'occupation': self.occupation
+        }
+
+# Appearance Model
+class Appearance(db.Model):
     __tablename__ = 'appearances'
 
     id = db.Column(db.Integer, primary_key=True)
-    rating = db.Column(db.Integer)
+    rating = db.Column(db.Integer, nullable=False)
+    
+    # Foreign keys
+    episode_id = db.Column(db.Integer, db.ForeignKey('episodes.id'), nullable=False)
+    guest_id = db.Column(db.Integer, db.ForeignKey('guests.id'), nullable=False)
 
-    # add relationships
-    
-    # add serialization rules
-    
-    # add validation
-    
-# add any models you may need.
+    def to_dict(self):
+        """Serialize the Appearance object to a dictionary"""
+        return {
+            'id': self.id,
+            'rating': self.rating,
+            'episode_id': self.episode_id,
+            'guest_id': self.guest_id
+        }

@@ -1,108 +1,53 @@
-pipe# Flask Code Challenge - Late Show
+# Lateshow Stephen Mwangi Maina
 
-For this assessment, you'll be working with Late Night TV show domain.
+# Episodes and Guests API
 
-In this repo:
-
-- There is a Flask application with some features built out.
-- There are tests included which you can run using `pytest -x`.
-- There is a file `challenge-4-lateshow.postman_collection.json` that contains a
-  Postman collection of requests for testing each route you will implement.
-
-Depending on your preference, you can either check your API by:
-
-- Using Postman to make requests
-- Running `pytest -x` and seeing if your code passes the tests
-
-You can import `challenge-4-lateshow.postman_collection.json` into Postman by
-pressing the `Import` button.
-
-![import postman](https://curriculum-content.s3.amazonaws.com/6130/phase-4-code-challenge-instructions/import_collection.png)
-
-Select `Upload Files`, navigate to this repo folder, and select
-`challenge-4-lateshow.postman_collection.json` as the file to import.
+## Overview
+This is a Flask-based API designed to manage episodes and their guest appearances. The application implements the relationships between episodes, guests, and appearances as shown in the ER diagram. The API enables you to perform CRUD operations on episodes, guests, and their associated appearances. The `Appearance` model tracks the rating of a guest's appearance on an episode.
 
 ## Setup
 
-The instructions assume you changed into the `code-challenge` folder **prior**
-to opening the code editor.
+1. **Create a private repository** in the GitHub organization . Name the repository as `episodes-guests-firstname-lastname` (e.g., `episodes-guests-john-doe`).
 
-To download the dependencies for the backend, run:
+2. **Postman Collection**:
+   - Download the provided Postman Collection to test your API.
+   - Import the collection into your Postman app using the `Upload Files` option.
 
-```console
-pipenv install
-pipenv shell
-```
+3. **Flask Setup**: 
+   - Clone the repository.
+   - Install the required dependencies using `pip install -r requirements.txt`.
+   - Run the application using `flask run`.
 
-You can run your Flask API on [`localhost:5555`](http://localhost:5555) by
-running:
-
-```console
-python server/app.py
-```
-
-Your job is to build out the Flask API to add the functionality described in the
-deliverables below.
+4. **Database Setup**:
+   - Run migrations to set up the database schema.
+   - Optionally, generate your own seed data if the provided CSV file isn't working.
 
 ## Models
 
-You will implement an API for the following data model:
+The API uses the following models:
 
-![domain diagram](https://curriculum-content.s3.amazonaws.com/6130/p4-code-challenge-4/domain.png)
+### Episode Model
+Represents an episode in the show, including its date and episode number.
 
-The application keeps track of the guests that have appeared on the show. There
-are three models in the domain: `Guest`, `Episode`, and `Appearance`.
+### Guest Model
+Represents a guest who appeared on the show, including their name and occupation.
 
-The file `server/models.py` defines the model classes **without relationships**.
-Use the following commands to create the initial database `app.db`:
+### Appearance Model
+Joins the `Episode` and `Guest` models, and includes a `rating` to track how well the guest's appearance was received. The `rating` must be between 1 and 5, inclusive.
 
-```console
-export FLASK_APP=server/app.py
-flask db init
-flask db upgrade head
-```
+### Relationships
+- An `Episode` has many `Guests` through `Appearance`.
+- A `Guest` has many `Episodes` through `Appearance`.
+- An `Appearance` belongs to both a `Guest` and an `Episode`.
 
-Now you can implement the relationships as shown in the ER Diagram:
-
-You need to create the following relationships:
-
-- An `Episode` has many `Guest`s through `Appearance`
-- A `Guest` has many `Episode`s through `Appearance`
-- An `Appearance` belongs to a `Guest` and belongs to an `Episode`
-
-Update `server/models.py` to establish the model relationships. Since an
-`Appearance` belongs to a `Episode` and a `Guest`, configure the model to
-cascade deletes.
-
-Set serialization rules to limit the recursion depth.
-
-Run the migrations and seed the database:
-
-```console
-flask db revision --autogenerate -m 'message'
-flask db upgrade head
-python server/seed.py
-```
-
-> Note that this seed file uses a CSV file to populate the database. If you
-> aren't able to get the provided seed file working, you are welcome to generate
-> your own seed data to test the application.
-
-## Validations
-
-Add validations to the `Appearance` model:
-
-- must have a `rating` between 1 and 5 (inclusive - 1 and 5 are okay)
+Cascading deletes are configured for the `Appearance` model to ensure proper cleanup when either a guest or episode is deleted.
 
 ## Routes
 
-Set up the following routes. Make sure to return JSON data in the format
-specified along with the appropriate HTTP verb.
+### `GET /episodes`
+Returns a list of all episodes in the system.
 
-### GET /episodes
-
-Return JSON data in the format below:
-
+#### Example Response:
 ```json
 [
   {
@@ -116,127 +61,25 @@ Return JSON data in the format below:
     "number": 2
   }
 ]
+
+#### Testing
+
+- Import the provided Postman collection to verify your API functionality.
+- Run the tests and ensure all routes respond correctly, including proper validation of the rating field.
+
 ```
 
-### GET /episodes/<int:id>
+Contributing
 
-If the `Episode` exists, return JSON data in the format below:
+1. Fork the repository.
+2. Clone the forked repository to your local machine.
+3. Make your changes and commit them.
+4. Push your changes and create a pull request.
 
-```json
-{
-  {
-    "id": 1,
-    "date": "1/11/99",
-    "number": 1,
-    "appearances": [
-        {
-            "episode_id": 1,
-            "guest": {
-                "id": 1,
-                "name": "Michael J. Fox",
-                "occupation": "actor"
-            },
-            "guest_id": 1,
-            "id": 1,
-            "rating": 4
-        }
-    ]
-}
 ```
 
-If the `Episode` does not exist, return the following JSON data, along with the
-appropriate HTTP status code:
+ Created by Steve Mwangi
 
-```json
-{
-  "error": "Episode not found"
-}
-```
 
-### DELETE /episodes/<int:id>
 
-If the `Episode` exists, it should be removed from the database, along with any
-`Appearance`s that are associated with it (an `Appearance` belongs to an
-`Episode`, so you need to delete the `Appearance`s before the `Episode` can be
-deleted).
 
-After deleting the `Episode`, return an _empty_ response body, along with the
-appropriate HTTP status code.
-
-If the `Episode` does not exist, return the following JSON data, along with the
-appropriate HTTP status code:
-
-```json
-{
-  "error": "Episode not found"
-}
-```
-
-### GET /guests
-
-Return JSON data in the format below:
-
-```json
-[
-  {
-    "id": 1,
-    "name": "Michael J. Fox",
-    "occupation": "actor"
-  },
-  {
-    "id": 2,
-    "name": "Sandra Bernhard",
-    "occupation": "Comedian"
-  },
-  {
-    "id": 3,
-    "name": "Tracey Ullman",
-    "occupation": "television actress"
-  }
-]
-```
-
-### POST /appearances
-
-This route should create a new `Appearance` that is associated with an existing
-`Episode` and `Guest`. It should accept an object with the following properties
-in the body of the request:
-
-```json
-{
-  "rating": 5,
-  "episode_id": 100,
-  "guest_id": 123
-}
-```
-
-If the `Appearance` is created successfully, send back a response with the
-following data:
-
-```json
-{
-  "id": 162,
-  "rating": 5,
-  "guest_id": 3,
-  "episode_id": 2,
-  "episode": {
-    "date": "1/12/99",
-    "id": 2,
-    "number": 2
-  },
-  "guest": {
-    "id": 3,
-    "name": "Tracey Ullman",
-    "occupation": "television actress"
-  }
-}
-```
-
-If the `Appearance` is **not** created successfully, return the following JSON
-data, along with the appropriate HTTP status code:
-
-```json
-{
-  "errors": ["validation errors"]
-}
-```
